@@ -2370,7 +2370,11 @@ func _on_clamp_toggled(value: bool, check: CheckButton, effect: SkillEffectData,
 func _add_effect(skill: SkillData) -> void:
 	var stat_keys := current_tree.get_player_stat_keys() if current_tree else []
 	if stat_keys.is_empty():
-		_open_stats_dialog("Сначала создайте характеристику: она определяет, что сможет менять эффект.")
+		# An effect cannot be configured without a target stat. Keep the graph visible
+		# and report the actionable fix in the editor status line instead of opening
+		# an empty, misleading statistics dialog.
+		if status_label:
+			status_label.text = "Сначала создайте характеристику: она определяет, что сможет менять эффект."
 		return
 	var before := _clone_tree(current_tree)
 	var effect := EFFECT_SCRIPT.new()
