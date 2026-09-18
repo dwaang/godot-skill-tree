@@ -152,11 +152,16 @@ func _build_ui() -> void:
 	language_option.item_selected.connect(_set_language)
 	toolbar.add_child(language_option)
 	status_label = Label.new()
+	status_label.name = "Status"
+	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	status_label.custom_minimum_size.y = 24
+	status_label.modulate = Color(0.85, 0.78, 0.45)
 
 	var help := Label.new()
 	help.text = "ПКМ по полю — создать навык. ПКМ по узлу — действия. Перетяните порт узла на другой порт, чтобы создать связь."
 	help.modulate = Color(0.65, 0.68, 0.75)
 	root.add_child(help)
+	root.add_child(status_label)
 
 	graph = GraphEdit.new()
 	graph.name = "SkillGraph"
