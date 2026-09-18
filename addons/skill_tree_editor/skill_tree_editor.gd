@@ -242,8 +242,10 @@ func _build_ui() -> void:
 	stats_dialog.min_size = Vector2i(520, 420)
 	var stats_root := VBoxContainer.new()
 	stats_root.custom_minimum_size = Vector2(430, 280)
+	stats_root.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	stats_dialog.add_child(stats_root)
 	stats_list = ItemList.new()
+	stats_list.custom_minimum_size = Vector2(0, 120)
 	stats_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	stats_list.item_selected.connect(_on_stat_selected)
 	stats_root.add_child(stats_list)
@@ -1792,7 +1794,8 @@ func _open_stats_dialog(hint := "") -> void:
 	stat_array_draft.clear()
 	stat_dictionary_draft.clear()
 	_update_stat_base_value_input()
-	stats_dialog.popup_centered(Vector2i(520, 420))
+	stats_dialog.size = Vector2i(520, 420)
+	stats_dialog.popup_centered()
 
 func _stat_title_key(stat_key: String) -> String:
 	return "STAT_%s" % stat_key.strip_edges().to_upper()
