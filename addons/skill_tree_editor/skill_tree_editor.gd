@@ -237,6 +237,9 @@ func _build_ui() -> void:
 	stats_dialog = AcceptDialog.new()
 	stats_dialog.title = "Характеристики"
 	stats_dialog.ok_button_text = "Закрыть"
+	# Keep the editor dialog bounded when the list is empty; otherwise Godot may
+	# let the expanding ItemList claim the whole editor viewport.
+	stats_dialog.min_size = Vector2i(520, 420)
 	var stats_root := VBoxContainer.new()
 	stats_root.custom_minimum_size = Vector2(430, 280)
 	stats_dialog.add_child(stats_root)
@@ -1789,7 +1792,7 @@ func _open_stats_dialog(hint := "") -> void:
 	stat_array_draft.clear()
 	stat_dictionary_draft.clear()
 	_update_stat_base_value_input()
-	stats_dialog.popup_centered()
+	stats_dialog.popup_centered(Vector2i(520, 420))
 
 func _stat_title_key(stat_key: String) -> String:
 	return "STAT_%s" % stat_key.strip_edges().to_upper()
