@@ -75,6 +75,7 @@ var is_rebuilding := false
 var is_opening := false
 var is_saving := false
 var dirty := false
+var status_message_time_left := 0.0
 
 func _ready() -> void:
 	if not is_node_ready():
@@ -86,6 +87,10 @@ func _ready() -> void:
 	new_tree(false)
 
 func _process(_delta: float) -> void:
+	if status_message_time_left > 0.0:
+		status_message_time_left -= _delta
+		if status_message_time_left <= 0.0 and status_label:
+			status_label.text = ""
 	if not graph or is_rebuilding:
 		return
 	for skill_id in node_by_id:
@@ -94,6 +99,12 @@ func _process(_delta: float) -> void:
 		if skill and node.position_offset != skill.editor_position:
 			skill.editor_position = node.position_offset
 			dirty = true
+
+func _show_status(message: String) -> void:
+	if not status_label:
+		return
+	status_label.text = message
+	status_message_time_left = 10.0
 
 func _build_ui() -> void:
 	var settings = plugin.get_editor_interface().get_editor_settings() if plugin else null
@@ -708,7 +719,7 @@ func new_tree(record_undo := true) -> void:
 		_update_zoom_label()
 	_redraw_graph()
 	call_deferred("center_origin")
-	status_label.text = "Новое дерево: ПКМ по полю, чтобы создать навык"
+	_show_status("Новое дерево: ПКМ по полю, чтобы создать навык")
 	if record_undo and before and undo_redo:
 		_commit_snapshot(before, _clone_tree(current_tree), "Создать новое дерево")
 
@@ -743,7 +754,7 @@ func clear_all_nodes() -> void:
 	expanded_sections.clear()
 	_commit_snapshot(before, _clone_tree(current_tree), "Очистить дерево навыков")
 	_redraw_graph()
-	status_label.text = "Дерево очищено. Отменить: Undo"
+	_show_status("Дерево очищено. Отменить: Undo")
 
 func _on_graph_gui_input(event: InputEvent) -> void:
 	if context_menu and context_menu.visible:
@@ -874,7 +885,7 @@ func _on_connection_request(from_node: StringName, _from_port: int, to_node: Str
 		return
 	var child := current_tree.get_skill(child_id)
 	if not child or current_tree.get_skill(parent_id) == null or _has_ancestor(parent_id, child_id):
-		status_label.text = "Связь отклонена: она создаёт цикл"
+		_show_status("Связь отклонена: она создаёт цикл")
 		return
 	for requirement in child.requirements:
 		if requirement and requirement.parent_skill_id == parent_id:
@@ -971,7 +982,7 @@ func copy_skill() -> void:
 	var skill := current_tree.get_skill(selected_skill_id) if current_tree else null
 	if skill:
 		clipboard_skill = _clone_skill(skill)
-		status_label.text = "Скопирован навык: %s" % _editor_skill_title(skill)
+		_show_status("Скопирован навык: %s" % _editor_skill_title(skill))
 
 func duplicate_skill() -> void:
 	if current_tree and not selected_skill_id.is_empty():
@@ -980,13 +991,13 @@ func duplicate_skill() -> void:
 
 func validate_tree() -> bool:
 	if not current_tree:
-		status_label.text = "Нет открытого дерева"
+		_show_status("Нет открытого дерева")
 		return false
 	var errors := VALIDATOR.validate(current_tree)
 	if errors.is_empty():
-		status_label.text = "✓ Корректно: %d навыков" % current_tree.skills.size()
+		_show_status("✓ Корректно: %d навыков" % current_tree.skills.size())
 		return true
-	status_label.text = "✗ " + " | ".join(errors)
+	_show_status("✗ " + " | ".join(errors))
 	return false
 
 func save_tree(path_override: String = "") -> bool:
@@ -1015,7 +1026,7 @@ func save_tree(path_override: String = "") -> bool:
 		current_tree.take_over_path(target_path)
 		is_saving = false
 		push_error("SkillTree save failed: %s (%s)" % [target_path, error_string(error)])
-		status_label.text = "Ошибка сохранения %s: %s" % [target_path, error_string(error)]
+		_show_status("Ошибка сохранения %s: %s" % [target_path, error_string(error)])
 		return false
 	if existing_uid != ResourceUID.INVALID_ID:
 		ResourceSaver.set_uid(target_path, existing_uid)
@@ -1024,7 +1035,7 @@ func save_tree(path_override: String = "") -> bool:
 		current_tree.take_over_path(target_path)
 		is_saving = false
 		push_error("SkillTree save verification failed: %s" % target_path)
-		status_label.text = "Ошибка проверки сохранения: данные в %s не совпадают" % target_path
+		_show_status("Ошибка проверки сохранения: данные в %s не совпадают" % target_path)
 		return false
 	var refreshed = ResourceLoader.load(target_path, "SkillTreeData", ResourceLoader.CACHE_MODE_REPLACE_DEEP)
 	current_tree = refreshed if refreshed is SkillTreeData else snapshot
@@ -1038,7 +1049,7 @@ func save_tree(path_override: String = "") -> bool:
 			filesystem.update_file(target_path)
 		else:
 			filesystem.scan()
-	status_label.text = "✓ Сохранено одним файлом: %s" % target_path
+	_show_status("✓ Сохранено одним файлом: %s" % target_path)
 	return true
 
 func _commit_pending_edits() -> void:
@@ -1113,9 +1124,9 @@ func _open_tree_deferred(path: String) -> void:
 		dirty = false
 		_redraw_graph()
 		call_deferred("frame_all")
-		status_label.text = "Открыто: %s" % path
+		_show_status("Открыто: %s" % path)
 	else:
-		status_label.text = "Файл не является SkillTreeData"
+		_show_status("Файл не является SkillTreeData")
 	is_opening = false
 
 func _redraw_graph() -> void:
@@ -1452,7 +1463,7 @@ func _fit_node_after_layout(node_id: int) -> void:
 				var child_minimum: Vector2 = child.get_combined_minimum_size()
 				push_warning("  child '%s' requires %.1f x %.1f px" % [child.name, child_minimum.x, child_minimum.y])
 		if status_label:
-			status_label.text = "Layout: %s требует ширину %.0f px" % [graph_node.name, minimum_size.x]
+			_show_status("Layout: %s требует ширину %.0f px" % [graph_node.name, minimum_size.x])
 	if is_compact:
 		graph_node.size = CARD_SIZE
 		return
@@ -2379,7 +2390,7 @@ func _add_effect(skill: SkillData) -> void:
 		# and report the actionable fix in the editor status line instead of opening
 		# an empty, misleading statistics dialog.
 		if status_label:
-			status_label.text = "Сначала создайте характеристику: она определяет, что сможет менять эффект."
+			_show_status("Сначала создайте характеристику: она определяет, что сможет менять эффект.")
 		return
 	var before := _clone_tree(current_tree)
 	var effect := EFFECT_SCRIPT.new()
