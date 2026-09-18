@@ -91,6 +91,7 @@ func _process(_delta: float) -> void:
 		status_message_time_left -= _delta
 		if status_message_time_left <= 0.0 and status_label:
 			status_label.text = ""
+			status_label.visible = false
 	if not graph or is_rebuilding:
 		return
 	for skill_id in node_by_id:
@@ -104,6 +105,7 @@ func _show_status(message: String) -> void:
 	if not status_label:
 		return
 	status_label.text = message
+	status_label.visible = not message.is_empty()
 	status_message_time_left = 10.0
 
 func _build_ui() -> void:
@@ -165,7 +167,7 @@ func _build_ui() -> void:
 	status_label = Label.new()
 	status_label.name = "Status"
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	status_label.custom_minimum_size.y = 24
+	status_label.visible = false
 	status_label.modulate = Color(0.85, 0.78, 0.45)
 
 	var help := Label.new()
