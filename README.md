@@ -26,4 +26,6 @@ The addon registers one autoload: `SkillTree`.
 
 ## License
 
-MIT License. See [LICENSE](LICENSE).
+See [LICENSE](LICENSE). Personal and internal project use is permitted;
+publication, distribution, sublicensing and sale require prior written
+permission from Dwang.
