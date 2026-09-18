@@ -16,7 +16,7 @@ static func build(skill: SkillData, progression: SkillProgressionService) -> Dic
 		"state": state,
 		"current_level": current_level,
 		"next_cost": next_cost,
-		"title": TranslationServer.translate(skill.title),
+		"title": TranslationServer.translate(skill.get_title_key()),
 		"category": TranslationServer.translate(skill.category),
 		"description": TranslationServer.translate(skill.description),
 		"level": _with_color(level_text, tree, "max_level") if state == progression.STATE_MAX_LEVEL else level_text,
@@ -39,7 +39,7 @@ static func build(skill: SkillData, progression: SkillProgressionService) -> Dic
 	for requirement in progression.get_missing_prerequisites(skill.skill_id):
 		var parent := tree.get_skill(str(requirement["skill_id"]))
 		if parent:
-			missing_text.append(TranslationServer.translate("SKILL_REQUIRED") % [TranslationServer.translate(parent.title), requirement["required_level"]])
+			missing_text.append(TranslationServer.translate("SKILL_REQUIRED") % [TranslationServer.translate(parent.get_title_key()), requirement["required_level"]])
 	if not missing_text.is_empty():
 		result.requirements = TranslationServer.translate("SKILL_REQUIREMENTS") % ", ".join(missing_text)
 	var state_text := _state_text(state)

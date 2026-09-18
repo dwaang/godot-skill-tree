@@ -102,6 +102,15 @@ func _register_runtime_translations(tree_data: SkillTreeData) -> void:
 	for skill in tree_data.skills:
 		if not skill:
 			continue
+		var title_key := skill.get_title_key()
+		for locale_key in translations:
+			var fallback := skill.get_title_fallback()
+			var localized := str((skill.title_translations as Dictionary).get(locale_key, fallback))
+			translations[locale_key].add_message(title_key, localized)
+		has_messages = true
+	for skill in tree_data.skills:
+		if not skill:
+			continue
 		for effect in skill.effects:
 			if effect and effect.operation == SkillEffectData.Operation.ADD_UNIQUE and not effect.target_key.strip_edges().is_empty():
 				var stat := tree_data.get_player_stat(effect.target_property)

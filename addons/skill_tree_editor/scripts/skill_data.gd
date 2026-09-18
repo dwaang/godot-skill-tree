@@ -6,8 +6,10 @@ extends Resource
 @export_group("Identity")
 ## Stable identifier used by requirements and save state.
 @export var skill_id: String = ""
-## Display name or translation key for the skill.
-@export var title: String = "SKILL_NEW_TITLE"
+## Localized display names keyed by the locale keys configured on the tree.
+@export var title_translations: Dictionary = {}
+## Legacy title value kept in serialized resources for backward compatibility.
+@export_storage var title: String = ""
 ## Optional player-facing description.
 @export_multiline var description: String = ""
 ## Category label or translation key.
@@ -43,6 +45,30 @@ extends Resource
 @export_group("Migration")
 ## Legacy identifiers retained to migrate old saved trees.
 @export var legacy_paths: Array[String] = []
+
+func get_title_key() -> String:
+	var normalized := skill_id.strip_edges().to_upper()
+	var key := ""
+	for character in normalized:
+		if character == "_" or character.to_upper() != character.to_lower() or character.is_valid_int():
+			key += character
+		else:
+			key += "_"
+	return "SKILL_%s_TITLE" % key
+
+func get_title_fallback() -> String:
+	if not title.strip_edges().is_empty() and title != "SKILL_NEW_TITLE":
+		return title
+	return "SKILL_NEW_TITLE"
+
+func ensure_title_translations(locales: Array[Dictionary]) -> void:
+	var updated := title_translations.duplicate(true)
+	for locale_data in locales:
+		var locale_key := str(locale_data.get("key", "")).strip_edges()
+		if locale_key.is_empty() or updated.has(locale_key):
+			continue
+		updated[locale_key] = get_title_fallback()
+	title_translations = updated
 
 func get_cost(level: int) -> int:
 	if level < 1 or base_cost <= 0: return 0

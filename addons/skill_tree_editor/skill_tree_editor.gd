@@ -527,9 +527,11 @@ func _apply_language() -> void:
 					control.set_item_text(i, _translated(control.get_item_text(i)))
 	for skill_id in node_by_id:
 		var graph_node: GraphNode = node_by_id[skill_id]
-		var title_edit := graph_node.get_titlebar_hbox().get_node_or_null("TitleEdit") as LineEdit
-		if title_edit:
-			title_edit.placeholder_text = "Skill name" if language == "en" else "Название навыка"
+		var title_box := graph_node.get_titlebar_hbox().get_node_or_null("TitleTranslations") as VBoxContainer
+		if title_box:
+			for title_edit in title_box.get_children():
+				if title_edit is LineEdit:
+					title_edit.placeholder_text = "Skill name" if language == "en" else "Название навыка"
 		var description := graph_node.get_node_or_null("DescriptionEdit") as TextEdit
 		if description:
 			description.placeholder_text = "Description..." if language == "en" else "Описание..."
@@ -682,7 +684,7 @@ func new_tree(record_undo := true) -> void:
 	current_tree = tree
 	var first_skill := SKILL_SCRIPT.new()
 	first_skill.skill_id = "skill"
-	first_skill.title = "SKILL_NEW_TITLE"
+	first_skill.ensure_title_translations(tree.get_locales())
 	first_skill.category = tree.categories[0]
 	first_skill.currency_key = str(tree.get_base_currency().get("key"))
 	first_skill.editor_position = -CARD_SIZE * 0.5
@@ -819,7 +821,7 @@ func add_skill_at(position: Vector2) -> void:
 	_ensure_categories()
 	current_tree.ensure_default_currency()
 	skill.skill_id = _next_skill_id()
-	skill.title = "SKILL_NEW_TITLE"
+	skill.ensure_title_translations(current_tree.get_locales())
 	skill.category = current_tree.categories[0]
 	skill.currency_key = str(current_tree.get_base_currency().get("key"))
 	skill.editor_position = _snap_graph_position(position - CARD_SIZE * 0.5)
@@ -958,7 +960,7 @@ func copy_skill() -> void:
 	var skill := current_tree.get_skill(selected_skill_id) if current_tree else null
 	if skill:
 		clipboard_skill = _clone_skill(skill)
-		status_label.text = "Скопирован навык: %s" % skill.title
+		status_label.text = "Скопирован навык: %s" % _editor_skill_title(skill)
 
 func duplicate_skill() -> void:
 	if current_tree and not selected_skill_id.is_empty():
@@ -1181,25 +1183,29 @@ func _create_graph_node(skill: SkillData) -> void:
 	output_port_row.custom_minimum_size.y = 4
 	node.add_child(output_port_row)
 	node.set_slot(1, false, 0, Color.TRANSPARENT, true, 0, Color(0.35, 0.65, 1.0))
-	var title_edit := LineEdit.new()
-	title_edit.name = "TitleEdit"
-	title_edit.placeholder_text = "Название навыка"
-	title_edit.text = skill.title
-	title_edit.tooltip_text = skill.title
-	title_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_edit.add_theme_font_size_override("font_size", 16)
-	_tighten_text_control(title_edit)
-	_apply_graph_field_style(title_edit, Color("141823"), Color("4b578b"))
-	title_edit.set_meta("skill_old_value", skill.title)
-	title_edit.set_meta("skill_commit_target", skill)
-	title_edit.set_meta("skill_commit_property", "title")
-	title_edit.set_meta("skill_commit_skill_id", skill.skill_id)
-	title_edit.focus_exited.connect(_on_line_commit.bind(title_edit, skill, "title", skill.skill_id))
-	title_edit.text_submitted.connect(func(_text): _on_line_commit(title_edit, skill, "title", skill.skill_id))
+	skill.ensure_title_translations(current_tree.get_locales() if current_tree else [])
+	var title_box := VBoxContainer.new()
+	title_box.name = "TitleTranslations"
+	title_box.add_theme_constant_override("separation", 2)
+	for locale_data in current_tree.get_locales() if current_tree else [{"key": "en", "name": "English"}]:
+		var locale_key := str(locale_data.get("key", "en"))
+		var title_edit := LineEdit.new()
+		title_edit.name = "TitleEdit_%s" % locale_key
+		title_edit.placeholder_text = str(locale_data.get("name", locale_key))
+		title_edit.text = str((skill.title_translations as Dictionary).get(locale_key, skill.get_title_fallback()))
+		title_edit.tooltip_text = "%s — %s" % [str(locale_data.get("name", locale_key)), skill.get_title_key()]
+		title_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		title_edit.add_theme_font_size_override("font_size", 16)
+		_tighten_text_control(title_edit)
+		_apply_graph_field_style(title_edit, Color("141823"), Color("4b578b"))
+		title_edit.set_meta("skill_old_value", title_edit.text)
+		title_edit.focus_exited.connect(_on_title_translation_commit.bind(title_edit, skill, locale_key))
+		title_edit.text_submitted.connect(func(_text): _on_title_translation_commit(title_edit, skill, locale_key))
+		title_box.add_child(title_edit)
 	var titlebar := node.get_titlebar_hbox()
 	for child in titlebar.get_children():
 		child.free()
-	titlebar.add_child(title_edit)
+	titlebar.add_child(title_box)
 
 	var progression_row := HBoxContainer.new()
 	progression_row.name = "ProgressionPreview"
@@ -1439,7 +1445,7 @@ func _create_requirement_editor(parent: VBoxContainer, child: SkillData, require
 	prefix.text = "Требует"
 	row.add_child(prefix)
 	var label := Label.new()
-	label.text = parent_skill.title
+	label.text = _editor_skill_title(parent_skill)
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	row.add_child(label)
@@ -2624,6 +2630,13 @@ func _on_description_commit(edit: TextEdit, skill: SkillData) -> void:
 	_record_property(skill, "description", old_value, edit.text, skill.skill_id)
 	edit.set_meta("skill_old_value", edit.text)
 
+func _on_title_translation_commit(edit: LineEdit, skill: SkillData, locale_key: String) -> void:
+	var translations := skill.title_translations.duplicate(true)
+	var old_translations := translations.duplicate(true)
+	translations[locale_key] = edit.text
+	_record_property(skill, "title_translations", old_translations, translations, skill.skill_id)
+	edit.set_meta("skill_old_value", edit.text)
+
 func _record_property(target: Resource, property_name: String, old_value: Variant, new_value: Variant, _skill_id: String) -> void:
 	if str(old_value) == str(new_value) and typeof(old_value) == typeof(new_value):
 		target.set(property_name, new_value)
@@ -2675,6 +2688,12 @@ func _on_graph_node_moved(node: GraphNode, skill_id: String) -> void:
 func _on_search_changed(_text: String) -> void:
 	_update_search_visibility()
 
+func _editor_skill_title(skill: SkillData) -> String:
+	if not skill:
+		return ""
+	var locale_key := "en" if language == "en" else "ru"
+	return str(skill.title_translations.get(locale_key, skill.get_title_fallback()))
+
 func _update_search_visibility() -> void:
 	if not graph:
 		return
@@ -2682,7 +2701,7 @@ func _update_search_visibility() -> void:
 	for skill_id in node_by_id:
 		var skill := current_tree.get_skill(skill_id)
 		var node: GraphNode = node_by_id[skill_id]
-		node.modulate = Color.WHITE if query.is_empty() or skill.title.to_lower().contains(query) or skill.skill_id.to_lower().contains(query) else Color(0.35, 0.35, 0.4)
+		node.modulate = Color.WHITE if query.is_empty() or _editor_skill_title(skill).to_lower().contains(query) or skill.skill_id.to_lower().contains(query) else Color(0.35, 0.35, 0.4)
 
 func frame_all() -> void:
 	if not graph or not current_tree or current_tree.skills.is_empty():
@@ -2761,6 +2780,7 @@ func _clone_skill(source: SkillData) -> SkillData:
 	var result := SKILL_SCRIPT.new()
 	result.skill_id = source.skill_id
 	result.title = source.title
+	result.title_translations = source.title_translations.duplicate(true)
 	result.description = source.description
 	result.category = source.category
 	result.icon = source.icon
@@ -2842,6 +2862,7 @@ func _tree_fingerprint(tree: SkillTreeData) -> Dictionary:
 		var skill_data: Dictionary = {
 			"skill_id": skill.skill_id,
 			"title": skill.title,
+			"title_translations": skill.title_translations.duplicate(true),
 			"description": skill.description,
 			"category": skill.category,
 			"icon": skill.icon.resource_path if skill.icon else "",
