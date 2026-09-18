@@ -531,7 +531,7 @@ func _apply_language() -> void:
 		if title_box:
 			for title_edit in title_box.get_children():
 				if title_edit is LineEdit:
-					title_edit.placeholder_text = "Skill name" if language == "en" else "Название навыка"
+					title_edit.placeholder_text = "Skill name" if language == "en" else "Название"
 		var description := graph_node.get_node_or_null("DescriptionEdit") as TextEdit
 		if description:
 			description.placeholder_text = "Description..." if language == "en" else "Описание..."
@@ -1186,15 +1186,21 @@ func _create_graph_node(skill: SkillData) -> void:
 	skill.ensure_title_translations(current_tree.get_locales() if current_tree else [])
 	var title_box := VBoxContainer.new()
 	title_box.name = "TitleTranslations"
+	# GraphNode's title bar does not give a VBox with empty minimum width any room to expand.
+	# Reserve the card width explicitly so localized title fields remain real, usable inputs.
+	title_box.custom_minimum_size = Vector2(CARD_SIZE.x - 24.0, 0.0)
+	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_box.add_theme_constant_override("separation", 2)
 	for locale_data in current_tree.get_locales() if current_tree else [{"key": "en", "name": "English"}]:
 		var locale_key := str(locale_data.get("key", "en"))
 		var title_edit := LineEdit.new()
 		title_edit.name = "TitleEdit_%s" % locale_key
-		title_edit.placeholder_text = str(locale_data.get("name", locale_key))
-		title_edit.text = str((skill.title_translations as Dictionary).get(locale_key, skill.get_title_fallback()))
+		title_edit.placeholder_text = "Skill name" if language == "en" else "Название"
+		var localized_title := str((skill.title_translations as Dictionary).get(locale_key, ""))
+		title_edit.text = "" if localized_title.is_empty() or localized_title == skill.get_title_fallback() else localized_title
 		title_edit.tooltip_text = "%s — %s" % [str(locale_data.get("name", locale_key)), skill.get_title_key()]
 		title_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		title_edit.custom_minimum_size = Vector2(0.0, 30.0)
 		title_edit.add_theme_font_size_override("font_size", 16)
 		_tighten_text_control(title_edit)
 		_apply_graph_field_style(title_edit, Color("141823"), Color("4b578b"))
