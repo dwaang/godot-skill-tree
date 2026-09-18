@@ -531,7 +531,8 @@ func _apply_language() -> void:
 		if title_box:
 			for title_edit in title_box.get_children():
 				if title_edit is LineEdit:
-					title_edit.placeholder_text = "Skill name" if language == "en" else "Название"
+					var locale_key := str(title_edit.get_meta("title_locale", "en"))
+					title_edit.placeholder_text = _title_placeholder(locale_key)
 		var description := graph_node.get_node_or_null("DescriptionEdit") as TextEdit
 		if description:
 			description.placeholder_text = "Description..." if language == "en" else "Описание..."
@@ -1195,7 +1196,8 @@ func _create_graph_node(skill: SkillData) -> void:
 		var locale_key := str(locale_data.get("key", "en"))
 		var title_edit := LineEdit.new()
 		title_edit.name = "TitleEdit_%s" % locale_key
-		title_edit.placeholder_text = "Skill name" if language == "en" else "Название"
+		title_edit.placeholder_text = _title_placeholder(locale_key)
+		title_edit.set_meta("title_locale", locale_key)
 		var localized_title := str((skill.title_translations as Dictionary).get(locale_key, ""))
 		title_edit.text = "" if localized_title.is_empty() or localized_title == skill.get_title_fallback() else localized_title
 		title_edit.tooltip_text = "%s — %s" % [str(locale_data.get("name", locale_key)), skill.get_title_key()]
@@ -1355,6 +1357,13 @@ func _create_graph_node(skill: SkillData) -> void:
 	add_effect.pressed.connect(_add_effect.bind(skill))
 	effects_box.add_child(add_effect)
 	_fit_node(node)
+
+func _title_placeholder(locale_key: String) -> String:
+	if locale_key.to_lower().begins_with("ru"):
+		return "Название"
+	if locale_key.to_lower().begins_with("en"):
+		return "Title"
+	return "Title"
 
 func _tighten_text_control(control: Control) -> void:
 	control.add_theme_constant_override("minimum_character_width", 1)
