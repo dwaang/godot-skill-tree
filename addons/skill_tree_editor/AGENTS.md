@@ -4,7 +4,7 @@ This file is for coding agents modifying `addons/skill_tree_editor`. Read it bef
 
 ## Objective
 
-Keep this directory copyable into any Godot 4.8+ project. Enabling the plugin must provide an editor and runtime skill-tree system without host-project dependencies.
+Keep this directory copyable into any Godot 4.0+ project. The addon is tested with Godot 4.8. Enabling the plugin must provide an editor and runtime skill-tree system without host-project dependencies.
 
 ## Hard invariants
 

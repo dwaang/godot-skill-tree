@@ -1,6 +1,6 @@
 # Skill Tree Editor
 
-Universal Godot 4.8 skill-tree editor, runtime UI, progression and local save system.
+Universal Godot 4 skill-tree editor, runtime UI, progression and local save system.
 
 ## Documentation
 

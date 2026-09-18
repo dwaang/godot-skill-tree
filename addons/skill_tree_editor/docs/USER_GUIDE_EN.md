@@ -5,7 +5,7 @@ This guide explains how to install, author, run, save and customize a tree witho
 ## 1. Install
 
 1. Copy the complete `addons/skill_tree_editor` folder into the target project's `addons` folder.
-2. Open the project in Godot 4.8 or newer.
+2. Open the project in Godot 4.0 or newer. The addon is tested with Godot 4.8.
 3. Enable **Skill Tree** in **Project > Project Settings > Plugins**.
 4. Confirm that Godot added one autoload named `SkillTree`. Do not add `SkillTreeStorage` or `SkillProgression` yourself; they are internal services.
 

@@ -1,6 +1,6 @@
 # Godot Skill Tree
 
-Reusable Godot 4.8 addon for building, editing and running skill trees.
+Reusable Godot 4 addon for building, editing and running skill trees.
 
 It includes an in-editor graph editor, currencies, requirements, effects, local progression saves, runtime UI, pan/zoom, reset with configurable refunds, and RU/EN localization.
 
@@ -21,8 +21,7 @@ The addon registers one autoload: `SkillTree`.
 
 ## Requirements
 
-- Godot 4.8 or newer
-- No Platform, Steam, game-specific singleton, project theme or custom input action dependency
+- Tested with Godot 4.8; intended for Godot 4.0 and newer
 
 ## License
 

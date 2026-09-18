@@ -5,7 +5,7 @@
 ## 1. Установка
 
 1. Скопируйте всю папку `addons/skill_tree_editor` в папку `addons` целевого Godot-проекта.
-2. Откройте проект в Godot 4.8 или новее.
+2. Откройте проект в Godot 4.0 или новее. Аддон проверен на Godot 4.8.
 3. Включите **Skill Tree**: **Project > Project Settings > Plugins**.
 4. Проверьте, что Godot добавил ровно один autoload — `SkillTree`.
 
